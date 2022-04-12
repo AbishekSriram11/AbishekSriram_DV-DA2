@@ -1,0 +1,117 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib as mpl
+import numpy as np
+import seaborn as sns
+%matplotlib inline
+
+data = pd.read_csv('../input/diamonds/diamonds.csv')
+data = data.iloc[: , 1:]
+data.head()
+
+**Attributes:**
+
+price : price in US dollars
+
+carat : weight of the diamond (0.2--5.01)
+
+cut : quality of the cut (Fair, Good, Very Good, Premium, Ideal)
+
+color : diamond colour, from J (worst) to D (best)
+
+clarity : a measurement of how clear the diamond is (I1 (worst), SI2, SI1, VS2, VS1, VVS2, VVS1, IF (best))
+
+x : length in mm (0--10.74)
+
+y : width in mm (0--58.9)
+
+z : depth in mm (0--31.8)
+
+depth total depth percentage = z / mean(x, y) = 2 * z / (x + y) (43--79)
+
+table : width of top of diamond relative to widest point (43--95)
+
+data.hist(bins=15, color='steelblue', edgecolor='black', linewidth=1.0,
+           xlabelsize=8, ylabelsize=8, grid=False)    
+plt.tight_layout(rect=(0, 0, 3,3))   
+
+# Correlation Matrix Heatmap
+f, ax = plt.subplots(figsize=(15, 7))
+corr = data.corr()
+hm = sns.heatmap(round(corr,2), annot=True, ax=ax, cmap="autumn",fmt='.2f',
+                 linewidths=.05)
+f.subplots_adjust(top=0.93)
+t= f.suptitle('Diamond Attributes Correlation Heatmap', fontsize=18)
+
+cols = ['carat', 'depth', 'price', 'table','x','y','z']
+pp = sns.pairplot(data[cols], height=1.8, aspect=1.8,
+                  plot_kws=dict(edgecolor="k", linewidth=0.5),
+                  diag_kind="kde", diag_kws=dict(shade=True))
+
+fig = pp.fig 
+fig.subplots_adjust(top=0.93, wspace=0.3)
+t = fig.suptitle('Diamond Attributes Pairwise Plots', fontsize=14)
+
+cols = ['carat', 'depth', 'price', 'table']
+subset_df = data[cols]
+
+from sklearn.preprocessing import StandardScaler
+ss = StandardScaler()
+
+scaled_df = ss.fit_transform(subset_df)
+scaled_df = pd.DataFrame(scaled_df, columns=cols)
+final_df = pd.concat([scaled_df, data['cut']], axis=1)
+final_df.head()
+
+# plot parallel coordinates
+from pandas.plotting import parallel_coordinates
+pc = parallel_coordinates(final_df, 'cut', color=('#FFD700','#7FFFD4','#8A2BE2','#76EE00','#FF6103'))
+
+fig = plt.figure(figsize=(8, 6))
+ax = fig.add_subplot(111, projection='3d')
+
+xs = data['depth']
+ys = data['carat']
+zs = data['price']
+ax.scatter(xs, ys, zs, s=50, alpha=0.6, edgecolors='w')
+
+ax.set_xlabel('depth')
+ax.set_ylabel('carat')
+ax.set_zlabel('price')
+
+fig = plt.figure(figsize=(8, 6))
+t = fig.suptitle('Diamonds depth - carat - price - cut', fontsize=14)
+ax = fig.add_subplot(111, projection='3d')
+
+xs = list(data['depth'])
+ys = list(data['carat'])
+zs = list(data['price'])
+data_points = [(x, y, z) for x, y, z in zip(xs, ys, zs)]
+colors = ['red' if wt == 'Ideal'
+          else 'yellow'if wt =='Good' else 'green' if wt =='Premium' else 'cyan' if wt=='Fair' else 'blue' for wt in list(data['cut'])]
+
+for data, color in zip(data_points, colors):
+    x, y, z = data
+    ax.scatter(x, y, z, alpha=0.4, c=color, edgecolors='none', s=30)
+
+ax.set_xlabel('depth')
+ax.set_ylabel('carat')
+ax.set_zlabel('price')
+
+# Visualizing 4-D mix data using bubble plots
+# leveraging the concepts of hue and size
+size = data['carat']*20
+fill_colors = ['#FF34B3' if wt == 'D'
+          else 'yellow'if wt =='E' else '#6495ED' if wt=="F" else '#7FFF00' if wt =='G' else '#97FFFF' if wt=='H' else '#FF1493'if wt=='I' else '#00BFFF' for wt in list(data['color'])]
+
+edge_colors =  ['red' if wt == 'D'
+          else '#FF6103'if wt =='E' else '#8A2BE2' if wt=="F" else 'green' if wt =='G' else '#79CDCD' if wt=='H' else '#CD1076' if wt=='I' else '#00B2EE' for wt in list(data['color'])]
+
+p=plt.scatter(data['x'], data['price'], s=size, 
+            alpha=0.5, color=fill_colors, edgecolors=edge_colors)
+p
+plt.xlabel('depth')
+plt.ylabel('price')
+plt.title('Diamond depth - price - carat - color',y=1.05)
+
